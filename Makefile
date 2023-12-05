@@ -1,10 +1,10 @@
 #OBJS specifies which files to compile as part of the project
-MAIN = main.cpp
+MAIN = cM6502/main.cpp
 SRC = 
 
 
 OBJS = $(MAIN) $(SRC)
-INCL =
+INCL = 
 
 #CC specifies which compiler we're using
 CC = g++
