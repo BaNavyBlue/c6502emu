@@ -30,6 +30,14 @@ struct Mem{
     {
         return data[address];
     }
+
+    // costs 2 cycles
+    void WriteWord(u16 value, u16 address)
+    {
+        data[address] = value & 0xFF;
+        data[address + 1] = (value >> 8); 
+    }
+
 };
 
 struct CPU{
@@ -59,6 +67,16 @@ struct CPU{
         return mem[address];
     }
 
+    u16 FetchWord(Mem& mem)
+    {
+        // 6502 is little endian
+        u16 data = mem[PC];
+        PC++;
+        data |= (mem[PC] << 8);
+        PC++;
+        return data;
+    }
+
     void Reset(Mem& mem)
     {
         PC = 0xFFFC;
@@ -69,8 +87,10 @@ struct CPU{
     }
     
     // opcodes
-    static constexpr u8 INS_LDA_IM = 0xA9;
-    static constexpr u8 INS_LDA_ZP = 0xA5;
+    static constexpr u8 INS_LDA_IM = 0xA9,
+                        INS_LDA_ZP = 0xA5,
+                        INS_LDA_ZPX = 0xB5,
+                        INS_JSR = 0x20;
     void LDASetStatus()
     {
         Z = (A == 0);
@@ -97,7 +117,28 @@ struct CPU{
                     A = ReadByte(address, mem);
                     cycles--;
                     LDASetStatus();
-                }break;    
+                }break;
+                case INS_LDA_ZPX:
+                {
+                    u8 zPageAdd = FetchByte(mem);
+                    cycles--;
+                    zPageAdd += X;
+                    cycles--;
+                    A = ReadByte(zPageAdd, mem);
+                    cycles--;
+                    LDASetStatus();
+                }break;
+                case INS_JSR:
+                {
+                    u16 subAddr = FetchWord(mem);
+                    cycles--;
+                    mem.WriteWord(PC - 1, SP);
+                    cycles -= 2;
+                    SP++;
+                    cycles--;
+                    PC = subAddr;
+                    cycles--;
+                }
                 // default:
                 //     break;
             }
@@ -122,6 +163,19 @@ int main(){
     mem[0x0042] = 0x84;
     cpu.Execute(3, mem);
     printf("cpu.A: 0x%x\r\ncpu.PC: 0x%x\r\n", cpu.A, cpu.PC);
+
+    cpu.Reset(mem);
+    mem[0xFFFC] = CPU::INS_JSR;
+    mem[0xFFFD] = 0x42;
+    mem[0xFFFE] = 0x42;
+    mem[0x4242] = CPU::INS_LDA_IM;
+    mem[0x4243] = 0x84;
+    printf("Before\r\n");
+    printf("cpu.SP: 0x%x\r\ncpu.PC: 0x%x\r\n", cpu.SP, cpu.PC);
+    cpu.Execute(8, mem);
+    printf("After\r\n");
+    printf("cpu.A: 0x%x\r\ncpu.PC: 0x%x\r\n", cpu.A, cpu.PC);
+    printf("cpu.SP: 0x%x\r\ncpu.PC: 0x%x\r\n", cpu.SP, cpu.PC);
 
     return 0;
 }
