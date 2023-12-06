@@ -92,15 +92,19 @@ struct CPU{
     static constexpr u8 INS_LDA_IM = 0xA9,
                         INS_LDA_ZP = 0xA5,
                         INS_LDA_ZPX = 0xB5,
+                        INS_LDA_ABS = 0xAD,
+                        INS_LDA_ABSX = 0xBD,
+                        INS_LDA_ABSY = 0xB9,
                         INS_JSR = 0x20;
     void LDASetStatus()
     {
         Z = (A == 0);
-        N = (A & 0b1000000) > 0;       
+        N = (A & 0b10000000) > 0;       
     }
 
-    void Execute(u32 cycles, Mem& mem)
+    int Execute(int cycles, Mem& mem)
     {
+        int requestedCycles = cycles;
         while(cycles > 0){
             u8 ins = FetchByte(mem);
             cycles--;
@@ -141,10 +145,14 @@ struct CPU{
                     PC = subAddr;
                     cycles--;
                 }
-                // default:
-                //     break;
+                default:
+                    std::cout << "Instruction: " << static_cast<int>(ins) << " not handled" << std::endl;
+                    cycles = - 1;
+                    requestedCycles = 0;
+                    break;
             }
         }
+        return requestedCycles - cycles;
     }
 };
 #endif

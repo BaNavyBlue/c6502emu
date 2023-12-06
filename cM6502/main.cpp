@@ -1,34 +1,39 @@
-#include "cM6502.h"
 
-int main(){
-    // zero page first 256 bytes of memory
-    Mem mem;
-    CPU cpu;
-    cpu.Reset(mem);
-    mem[0xFFFC] = CPU::INS_LDA_IM;
-    mem[0xFFFD] = 0x42;
-    cpu.Execute(2, mem);
-    printf("cpu.A: 0x%x\r\ncpu.PC: 0x%x\r\n", cpu.A, cpu.PC);
-    
-    cpu.Reset(mem);
-    mem[0xFFFC] = CPU::INS_LDA_ZP;
-    mem[0xFFFD] = 0x42;
-    mem[0x0042] = 0x84;
-    cpu.Execute(3, mem);
-    printf("cpu.A: 0x%x\r\ncpu.PC: 0x%x\r\n", cpu.A, cpu.PC);
 
-    cpu.Reset(mem);
-    mem[0xFFFC] = CPU::INS_JSR;
-    mem[0xFFFD] = 0x42;
-    mem[0xFFFE] = 0x42;
-    mem[0x4242] = CPU::INS_LDA_IM;
-    mem[0x4243] = 0x84;
-    printf("Before\r\n");
-    printf("cpu.SP: 0x%x\r\ncpu.PC: 0x%x\r\n", cpu.SP, cpu.PC);
-    cpu.Execute(8, mem);
-    printf("After\r\n");
-    printf("cpu.A: 0x%x\r\ncpu.PC: 0x%x\r\n", cpu.A, cpu.PC);
-    printf("cpu.SP: 0x%x\r\ncpu.PC: 0x%x\r\n", cpu.SP, cpu.PC);
+#include <cstdio>
 
-    return 0;
+#include "gtest/gtest.h"
+
+#if defined(GTEST_OS_ESP8266) || defined(GTEST_OS_ESP32) || \
+    (defined(GTEST_OS_NRF52) && defined(ARDUINO))
+// Arduino-like platforms: program entry points are setup/loop instead of main.
+
+#ifdef GTEST_OS_ESP8266
+extern "C" {
+#endif
+
+void setup() { testing::InitGoogleTest(); }
+
+void loop() { RUN_ALL_TESTS(); }
+
+#ifdef GTEST_OS_ESP8266
 }
+#endif
+
+#elif defined(GTEST_OS_QURT)
+// QuRT: program entry point is main, but argc/argv are unusable.
+
+GTEST_API_ int main() {
+  printf("Running main() from %s\n", __FILE__);
+  testing::InitGoogleTest();
+  return RUN_ALL_TESTS();
+}
+#else
+// Normal platforms: program entry point is main, argc/argv are initialized.
+
+GTEST_API_ int main(int argc, char **argv) {
+  printf("Running main() from %s\n", __FILE__);
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
+#endif
