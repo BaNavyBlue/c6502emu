@@ -64,9 +64,21 @@ struct CPU{
         return data;
     }
 
-    u8 ReadByte(u8 address, Mem& mem)
+    u8 ReadByteZPage(u8 address, Mem& mem)
     {
         return mem[address];
+    }
+
+    u8 ReadByte(u16 address, Mem& mem)
+    {
+        return mem[address];
+    }
+
+    u16 ReadWord(u16 address, Mem& mem)
+    {
+        u8 lowByte = ReadByte(address, mem);
+        u8 highByte = ReadByte(address + 1, mem);
+        return (highByte << 8)|lowByte;
     }
 
     u16 FetchWord(Mem& mem)
@@ -95,6 +107,8 @@ struct CPU{
                         INS_LDA_ABS = 0xAD,
                         INS_LDA_ABSX = 0xBD,
                         INS_LDA_ABSY = 0xB9,
+                        INS_LDA_INDX = 0xA1,
+                        INS_LDA_INDY = 0xB1,
                         INS_JSR = 0x20;
     void LDASetStatus()
     {
@@ -120,7 +134,7 @@ struct CPU{
                 {
                     u8 address = FetchByte(mem);
                     cycles--;
-                    A = ReadByte(address, mem);
+                    A = ReadByteZPage(address, mem);
                     cycles--;
                     LDASetStatus();
                 }break;
@@ -130,10 +144,68 @@ struct CPU{
                     cycles--;
                     zPageAdd += X;
                     cycles--;
-                    A = ReadByte(zPageAdd, mem);
+                    A = ReadByteZPage(zPageAdd, mem);
                     cycles--;
                     LDASetStatus();
                 }break;
+                case INS_LDA_ABS:
+                {
+                    u16 absAddress = FetchWord(mem);
+                    cycles -= 2;
+                    A = ReadByte(absAddress, mem);
+                    cycles--;
+                    LDASetStatus();
+                }break;
+                case INS_LDA_ABSX:
+                {
+                    u16 absAddress = FetchWord(mem);
+                    cycles -= 2;
+                    if((absAddress & 0x00FF) + X > 0xFF){
+                        cycles--;
+                    }
+                    absAddress += X;
+                    A = ReadByte(absAddress, mem);
+                    cycles--;
+                    LDASetStatus();
+                }break;
+                case INS_LDA_ABSY:
+                {
+                    u16 absAddress = FetchWord(mem);
+                    cycles -= 2;
+                    if((absAddress & 0x00FF) + Y > 0xFF){
+                        cycles--;
+                    }
+                    absAddress += Y;
+                    A = ReadByte(absAddress, mem);
+                    cycles--;
+                    LDASetStatus();
+                }break;
+                case INS_LDA_INDX:
+                {
+                    u16 zPageAddress = FetchByte(mem);
+                    cycles--;
+                    zPageAddress += X;
+                    cycles--;
+                    u16 targetAddress = ReadWord(zPageAddress, mem);
+                    cycles -= 2;
+                    A = ReadByte(targetAddress, mem);
+                    cycles--;
+                    LDASetStatus();
+                }break; 
+                case INS_LDA_INDY:
+                {
+                    u16 zPageAddress = FetchByte(mem);
+                    cycles--;
+                    u16 targetAddress = ReadWord(zPageAddress, mem);
+                    cycles -= 2;
+                    if((targetAddress&0x00FF) + Y > 0xFF){
+                        cycles--;
+                    }
+                    targetAddress += Y;
+                    A = ReadByte(targetAddress, mem);
+                    cycles--;
+                    LDASetStatus();
+                }break;            
                 case INS_JSR:
                 {
                     u16 subAddr = FetchWord(mem);

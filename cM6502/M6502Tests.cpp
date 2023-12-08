@@ -151,7 +151,7 @@ TEST_F(M60502Test1, LDAAbsoluteXCanLoadAValueIntoTheARegisterWhenCrossPageBounda
 TEST_F(M60502Test1, LDAAbsoluteYCanLoadAValueIntoTheARegister)
 {
     // given:
-    cpu.X = 0x01;
+    cpu.Y = 0x01;
 
     mem[0xFFFC] = CPU::INS_LDA_ABSY;
     mem[0xFFFD] = 0x80;
@@ -171,7 +171,7 @@ TEST_F(M60502Test1, LDAAbsoluteYCanLoadAValueIntoTheARegister)
 TEST_F(M60502Test1, LDAAbsoluteYCanLoadAValueIntoTheARegisterWhenCrossPageBoundary)
 {
     // given:
-    cpu.X = 0xFF;
+    cpu.Y = 0xFF;
 
     mem[0xFFFC] = CPU::INS_LDA_ABSY;
     mem[0xFFFD] = 0x02;
@@ -188,6 +188,68 @@ TEST_F(M60502Test1, LDAAbsoluteYCanLoadAValueIntoTheARegisterWhenCrossPageBounda
     EXPECT_FALSE(cpu.N);
 }
 
+TEST_F(M60502Test1, LDAIndirectXCanLoadAValueIntoTheARegisterWhenCrossPageBoundary)
+{
+    // given:
+    cpu.X = 0x04;
+
+    mem[0xFFFC] = CPU::INS_LDA_INDX;
+    mem[0xFFFD] = 0x02;
+    mem[0x0006] = 0x00; //0x4402
+    mem[0x0007] = 0x80; //0x4402 + 0xFF crosses the page boundary
+    mem[0x8000] = 0x37;
+    constexpr int EXPECTED_CYCLES = 6;
+    //when:
+    int cyclesUsed = cpu.Execute(EXPECTED_CYCLES, mem);
+
+    // then:
+    EXPECT_EQ( cpu.A, 0x37);
+    EXPECT_EQ(cyclesUsed, EXPECTED_CYCLES);
+    EXPECT_FALSE(cpu.Z);
+    EXPECT_FALSE(cpu.N);
+}
+
+TEST_F(M60502Test1, LDAIndirectYCanLoadAValueIntoTheARegister)
+{
+    // given:
+    cpu.Y = 0x04;
+
+    mem[0xFFFC] = CPU::INS_LDA_INDY;
+    mem[0xFFFD] = 0x02;
+    mem[0x0002] = 0x00; //0x4402
+    mem[0x0003] = 0x80; //0x4402 + 0xFF crosses the page boundary
+    mem[0x8004] = 0x37;
+    constexpr int EXPECTED_CYCLES = 5;
+    //when:
+    int cyclesUsed = cpu.Execute(EXPECTED_CYCLES, mem);
+
+    // then:
+    EXPECT_EQ( cpu.A, 0x37);
+    EXPECT_EQ(cyclesUsed, EXPECTED_CYCLES);
+    EXPECT_FALSE(cpu.Z);
+    EXPECT_FALSE(cpu.N);
+}
+
+TEST_F(M60502Test1, LDAIndirectYCanLoadAValueIntoTheARegisterWhenCrossPageBoundary)
+{
+    // given:
+    cpu.Y = 0xFF;
+
+    mem[0xFFFC] = CPU::INS_LDA_INDY;
+    mem[0xFFFD] = 0x02;
+    mem[0x0002] = 0x02;
+    mem[0x0003] = 0x80;
+    mem[0x8101] = 0x37;
+    constexpr int EXPECTED_CYCLES = 6;
+    //when:
+    int cyclesUsed = cpu.Execute(EXPECTED_CYCLES, mem);
+
+    // then:
+    EXPECT_EQ( cpu.A, 0x37);
+    EXPECT_EQ(cyclesUsed, EXPECTED_CYCLES);
+    EXPECT_FALSE(cpu.Z);
+    EXPECT_FALSE(cpu.N);
+}
 TEST_F(M60502Test1, CPUNoCycles)
 {
     // given:
