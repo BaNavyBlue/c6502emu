@@ -1,11 +1,11 @@
 #include "gtest/gtest.h"
 #include "cM6502.h"
 
-class M60502Test1 : public testing::Test
+class M6502Test1 : public testing::Test
 {
 public:
-    Mem mem;
-    CPU cpu;
+    M6502::Mem mem;
+    M6502::CPU cpu;
     virtual void SetUp()
     {
         cpu.Reset(mem);
@@ -15,17 +15,33 @@ public:
     {
 
     }
+    void TestLoadMessengerImmediate(
+        M6502::u8 opCode,
+        M6502::u8 M6502::CPU::*Register);
 };
 
-TEST_F(M60502Test1, LDAImmediateCanLoadAValueIntoTheARegister)
+TEST_F(M6502Test1, TheCPUDoesNothingWhenExecute0Cycles)
+{
+    // given:
+    constexpr int NUM_CYCLES = 0;
+
+    // when:
+    int cyclesUsed = NUM_CYCLES;
+    cpu.Execute(NUM_CYCLES, mem);
+
+    //then
+    EXPECT_EQ(cyclesUsed, 0);
+}
+
+TEST_F(M6502Test1, CPUUnderCycleLDAImmediateCanLoadAValueIntoTheARegister)
 {
     // given:
 
-    mem[0xFFFC] = CPU::INS_LDA_IM;
+    mem[0xFFFC] = M6502::CPU::INS_LDA_IM;
     mem[0xFFFD] = 0x84;
 
     //when:
-    int cyclesUsed = cpu.Execute(2, mem);
+    int cyclesUsed = cpu.Execute(1, mem);
 
     // then:
     EXPECT_EQ( cpu.A, 0x84);
@@ -34,11 +50,30 @@ TEST_F(M60502Test1, LDAImmediateCanLoadAValueIntoTheARegister)
     EXPECT_TRUE(cpu.N);
 }
 
-TEST_F(M60502Test1, LDAZeroPageCanLoadAValueIntoTheARegister)
+
+TEST_F(M6502Test1, LDAImmediateCanLoadAValueIntoTheARegister)
+{
+    // UGLEE SYNTAX
+    TestLoadMessengerImmediate(M6502::CPU::INS_LDA_IM, &M6502::CPU::A);
+}
+
+TEST_F(M6502Test1, LDXImmediateCanLoadAValueIntoTheXRegister)
+{
+    // UGLEE SYNTAX
+    TestLoadMessengerImmediate(M6502::CPU::INS_LDX_IM, &M6502::CPU::X);
+}
+
+TEST_F(M6502Test1, LDYImmediateCanLoadAValueIntoTheYRegister)
+{
+    // UGLEE SYNTAX
+    TestLoadMessengerImmediate(M6502::CPU::INS_LDY_IM, &M6502::CPU::X);
+}
+
+TEST_F(M6502Test1, LDAZeroPageCanLoadAValueIntoTheARegister)
 {
     // given:
 
-    mem[0xFFFC] = CPU::INS_LDA_ZP;
+    mem[0xFFFC] = M6502::CPU::INS_LDA_ZP;
     mem[0xFFFD] = 0x42;
     mem[0x0042] = 0x37;
 
@@ -52,12 +87,12 @@ TEST_F(M60502Test1, LDAZeroPageCanLoadAValueIntoTheARegister)
     EXPECT_FALSE(cpu.N);
 }
 
-TEST_F(M60502Test1, LDAZeroPageXCanLoadAValueIntoTheARegister)
+TEST_F(M6502Test1, LDAZeroPageXCanLoadAValueIntoTheARegister)
 {
     // given:
     cpu.X = 0x05;
 
-    mem[0xFFFC] = CPU::INS_LDA_ZPX;
+    mem[0xFFFC] = M6502::CPU::INS_LDA_ZPX;
     mem[0xFFFD] = 0x42;
     mem[0x0047] = 0x37;
 
@@ -71,12 +106,12 @@ TEST_F(M60502Test1, LDAZeroPageXCanLoadAValueIntoTheARegister)
     EXPECT_FALSE(cpu.N);
 }
 
-TEST_F(M60502Test1, LDAZeroPageXCanLoadAValueIntoTheARegisterWhenItWraps)
+TEST_F(M6502Test1, LDAZeroPageXCanLoadAValueIntoTheARegisterWhenItWraps)
 {
     // given:
     cpu.X = 0xFF;
 
-    mem[0xFFFC] = CPU::INS_LDA_ZPX;
+    mem[0xFFFC] = M6502::CPU::INS_LDA_ZPX;
     mem[0xFFFD] = 0x80;
     mem[0x007F] = 0x37;
 
@@ -90,10 +125,10 @@ TEST_F(M60502Test1, LDAZeroPageXCanLoadAValueIntoTheARegisterWhenItWraps)
     EXPECT_FALSE(cpu.N);
 }
 
-TEST_F(M60502Test1, LDAAbsoluteCanLoadAValueIntoTheARegister)
+TEST_F(M6502Test1, LDAAbsoluteCanLoadAValueIntoTheARegister)
 {
     // given:
-    mem[0xFFFC] = CPU::INS_LDA_ABS;
+    mem[0xFFFC] = M6502::CPU::INS_LDA_ABS;
     mem[0xFFFD] = 0x80;
     mem[0xFFFE] = 0x44;
     mem[0x4480] = 0x37;
@@ -108,12 +143,12 @@ TEST_F(M60502Test1, LDAAbsoluteCanLoadAValueIntoTheARegister)
     EXPECT_FALSE(cpu.N);
 }
 
-TEST_F(M60502Test1, LDAAbsoluteXCanLoadAValueIntoTheARegister)
+TEST_F(M6502Test1, LDAAbsoluteXCanLoadAValueIntoTheARegister)
 {
     // given:
     cpu.X = 0x01;
 
-    mem[0xFFFC] = CPU::INS_LDA_ABSX;
+    mem[0xFFFC] = M6502::CPU::INS_LDA_ABSX;
     mem[0xFFFD] = 0x80;
     mem[0xFFFE] = 0x44;
     mem[0x4481] = 0x37; // 0x4480 + 0x4481
@@ -128,12 +163,12 @@ TEST_F(M60502Test1, LDAAbsoluteXCanLoadAValueIntoTheARegister)
     EXPECT_FALSE(cpu.N);
 }
 
-TEST_F(M60502Test1, LDAAbsoluteXCanLoadAValueIntoTheARegisterWhenCrossPageBoundary)
+TEST_F(M6502Test1, LDAAbsoluteXCanLoadAValueIntoTheARegisterWhenCrossPageBoundary)
 {
     // given:
     cpu.X = 0xFF;
 
-    mem[0xFFFC] = CPU::INS_LDA_ABSX;
+    mem[0xFFFC] = M6502::CPU::INS_LDA_ABSX;
     mem[0xFFFD] = 0x02;
     mem[0xFFFE] = 0x44; //0x4402
     mem[0x4501] = 0x37; //0x4402 + 0xFF crosses the page boundary
@@ -148,12 +183,12 @@ TEST_F(M60502Test1, LDAAbsoluteXCanLoadAValueIntoTheARegisterWhenCrossPageBounda
     EXPECT_FALSE(cpu.N);
 }
 
-TEST_F(M60502Test1, LDAAbsoluteYCanLoadAValueIntoTheARegister)
+TEST_F(M6502Test1, LDAAbsoluteYCanLoadAValueIntoTheARegister)
 {
     // given:
     cpu.Y = 0x01;
 
-    mem[0xFFFC] = CPU::INS_LDA_ABSY;
+    mem[0xFFFC] = M6502::CPU::INS_LDA_ABSY;
     mem[0xFFFD] = 0x80;
     mem[0xFFFE] = 0x44;
     mem[0x4481] = 0x37; // 0x4480 + 0x4481
@@ -168,12 +203,12 @@ TEST_F(M60502Test1, LDAAbsoluteYCanLoadAValueIntoTheARegister)
     EXPECT_FALSE(cpu.N);
 }
 
-TEST_F(M60502Test1, LDAAbsoluteYCanLoadAValueIntoTheARegisterWhenCrossPageBoundary)
+TEST_F(M6502Test1, LDAAbsoluteYCanLoadAValueIntoTheARegisterWhenCrossPageBoundary)
 {
     // given:
     cpu.Y = 0xFF;
 
-    mem[0xFFFC] = CPU::INS_LDA_ABSY;
+    mem[0xFFFC] = M6502::CPU::INS_LDA_ABSY;
     mem[0xFFFD] = 0x02;
     mem[0xFFFE] = 0x44; //0x4402
     mem[0x4501] = 0x37; //0x4402 + 0xFF crosses the page boundary
@@ -188,12 +223,12 @@ TEST_F(M60502Test1, LDAAbsoluteYCanLoadAValueIntoTheARegisterWhenCrossPageBounda
     EXPECT_FALSE(cpu.N);
 }
 
-TEST_F(M60502Test1, LDAIndirectXCanLoadAValueIntoTheARegisterWhenCrossPageBoundary)
+TEST_F(M6502Test1, LDAIndirectXCanLoadAValueIntoTheARegister)
 {
     // given:
     cpu.X = 0x04;
 
-    mem[0xFFFC] = CPU::INS_LDA_INDX;
+    mem[0xFFFC] = M6502::CPU::INS_LDA_INDX;
     mem[0xFFFD] = 0x02;
     mem[0x0006] = 0x00; //0x4402
     mem[0x0007] = 0x80; //0x4402 + 0xFF crosses the page boundary
@@ -209,12 +244,12 @@ TEST_F(M60502Test1, LDAIndirectXCanLoadAValueIntoTheARegisterWhenCrossPageBounda
     EXPECT_FALSE(cpu.N);
 }
 
-TEST_F(M60502Test1, LDAIndirectYCanLoadAValueIntoTheARegister)
+TEST_F(M6502Test1, LDAIndirectYCanLoadAValueIntoTheARegister)
 {
     // given:
     cpu.Y = 0x04;
 
-    mem[0xFFFC] = CPU::INS_LDA_INDY;
+    mem[0xFFFC] = M6502::CPU::INS_LDA_INDY;
     mem[0xFFFD] = 0x02;
     mem[0x0002] = 0x00; //0x4402
     mem[0x0003] = 0x80; //0x4402 + 0xFF crosses the page boundary
@@ -230,12 +265,12 @@ TEST_F(M60502Test1, LDAIndirectYCanLoadAValueIntoTheARegister)
     EXPECT_FALSE(cpu.N);
 }
 
-TEST_F(M60502Test1, LDAIndirectYCanLoadAValueIntoTheARegisterWhenCrossPageBoundary)
+TEST_F(M6502Test1, LDAIndirectYCanLoadAValueIntoTheARegisterWhenCrossPageBoundary)
 {
     // given:
     cpu.Y = 0xFF;
 
-    mem[0xFFFC] = CPU::INS_LDA_INDY;
+    mem[0xFFFC] = M6502::CPU::INS_LDA_INDY;
     mem[0xFFFD] = 0x02;
     mem[0x0002] = 0x02;
     mem[0x0003] = 0x80;
@@ -250,7 +285,8 @@ TEST_F(M60502Test1, LDAIndirectYCanLoadAValueIntoTheARegisterWhenCrossPageBounda
     EXPECT_FALSE(cpu.Z);
     EXPECT_FALSE(cpu.N);
 }
-TEST_F(M60502Test1, CPUNoCycles)
+
+TEST_F(M6502Test1, CPUNoCycles)
 {
     // given:
 
@@ -260,6 +296,25 @@ TEST_F(M60502Test1, CPUNoCycles)
     // then:
     EXPECT_EQ(cyclesUsed, 0);
 
+}
+
+void M6502Test1::TestLoadMessengerImmediate(
+    M6502::u8 opCode,
+    M6502::u8 M6502::CPU::*RegisterToTest)
+{
+    // given:
+
+    mem[0xFFFC] = opCode;
+    mem[0xFFFD] = 0x84;
+
+    //when:
+    int cyclesUsed = cpu.Execute(2, mem);
+
+    // then:
+    EXPECT_EQ( cpu.*RegisterToTest, 0x84);
+    EXPECT_EQ(cyclesUsed, 2);
+    EXPECT_FALSE(cpu.Z);
+    EXPECT_TRUE(cpu.N);
 }
 
 #if 0

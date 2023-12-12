@@ -6,12 +6,19 @@
 
 // http://www.obelisk.me.uk/6502/
 
-using u8 = unsigned char;
-using u16 = unsigned short;
-using u32 = unsigned int;
+namespace M6502
+{
+    using u8 = unsigned char;
+    using u16 = unsigned short;
+    using u32 = unsigned int;
+    struct Mem;
+    struct CPU;
+}
 
 
-struct Mem{
+
+
+struct M6502::Mem{
     static constexpr u32 MAX_MEM = 1024 * 64;
     u8 data[MAX_MEM];
     void Initialize()
@@ -42,7 +49,7 @@ struct Mem{
 
 };
 
-struct CPU{
+struct M6502::CPU{
     u16 PC;     // program counter
     u16 SP;     // stack pointer
 
@@ -109,6 +116,8 @@ struct CPU{
                         INS_LDA_ABSY = 0xB9,
                         INS_LDA_INDX = 0xA1,
                         INS_LDA_INDY = 0xB1,
+                        INS_LDX_IM = 0xA2,
+                        INS_LDY_IM = 0xA0,
                         INS_JSR = 0x20;
     void LDASetStatus()
     {
