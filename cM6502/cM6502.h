@@ -108,7 +108,9 @@ struct M6502::CPU{
     }
     
     // opcodes
-    static constexpr u8 INS_LDA_IM = 0xA9,
+    static constexpr u8 
+                        // LDA
+                        INS_LDA_IM = 0xA9,
                         INS_LDA_ZP = 0xA5,
                         INS_LDA_ZPX = 0xB5,
                         INS_LDA_ABS = 0xAD,
@@ -116,13 +118,35 @@ struct M6502::CPU{
                         INS_LDA_ABSY = 0xB9,
                         INS_LDA_INDX = 0xA1,
                         INS_LDA_INDY = 0xB1,
+                        // LDX
                         INS_LDX_IM = 0xA2,
+                        INS_LDX_ZP = 0xA6,
+                        INS_LDX_ZPY = 0xB6,
+                        INS_LDX_ABS = 0xAE,
+                        INS_LDX_ABSY = 0xBE,
+                        // LDY
                         INS_LDY_IM = 0xA0,
+                        INS_LDY_ZP = 0xA4,
+                        INS_LDY_ZPX = 0xB4,
+                        INS_LDY_ABS = 0xAC,
+                        INS_LDY_ABSX = 0xBC,
                         INS_JSR = 0x20;
     void LDASetStatus()
     {
         Z = (A == 0);
         N = (A & 0b10000000) > 0;       
+    }
+
+    void LDXSetStatus()
+    {
+        Z = (X == 0);
+        N = (X & 0b10000000) > 0;       
+    }
+
+    void LDYSetStatus()
+    {
+        Z = (Y == 0);
+        N = (Y & 0b10000000) > 0;       
     }
 
     int Execute(int cycles, Mem& mem)
@@ -214,6 +238,96 @@ struct M6502::CPU{
                     A = ReadByte(targetAddress, mem);
                     cycles--;
                     LDASetStatus();
+                }break;
+                case INS_LDX_IM:
+                {
+                    u8 value = FetchByte(mem);
+                    cycles--;
+                    X = value;
+                    LDXSetStatus();
+                }break;
+                case INS_LDX_ZP:
+                {
+                    u8 address = FetchByte(mem);
+                    cycles--;
+                    X = ReadByteZPage(address, mem);
+                    cycles--;
+                    LDXSetStatus();
+                }break;
+                case INS_LDX_ZPY:
+                {
+                    u8 zPageAdd = FetchByte(mem);
+                    cycles--;
+                    zPageAdd += Y;
+                    cycles--;
+                    X = ReadByteZPage(zPageAdd, mem);
+                    cycles--;
+                    LDXSetStatus();
+                }break;
+                case INS_LDX_ABS:
+                {
+                    u16 absAddress = FetchWord(mem);
+                    cycles -= 2;
+                    X = ReadByte(absAddress, mem);
+                    cycles--;
+                    LDXSetStatus();
+                }break;
+                case INS_LDX_ABSY:
+                {
+                    u16 absAddress = FetchWord(mem);
+                    cycles -= 2;
+                    if((absAddress & 0x00FF) + Y > 0xFF){
+                        cycles--;
+                    }
+                    absAddress += Y;
+                    X = ReadByte(absAddress, mem);
+                    cycles--;
+                    LDXSetStatus();
+                }break;
+                case INS_LDY_IM:
+                {
+                    u8 value = FetchByte(mem);
+                    cycles--;
+                    Y = value;
+                    LDYSetStatus();
+                }break;
+                case INS_LDY_ZP:
+                {
+                    u8 address = FetchByte(mem);
+                    cycles--;
+                    Y = ReadByteZPage(address, mem);
+                    cycles--;
+                    LDYSetStatus();
+                }break; 
+                case INS_LDY_ZPX:
+                {
+                    u8 zPageAdd = FetchByte(mem);
+                    cycles--;
+                    zPageAdd += X;
+                    cycles--;
+                    Y = ReadByteZPage(zPageAdd, mem);
+                    cycles--;
+                    LDYSetStatus();
+                }break;
+                case INS_LDY_ABS:
+                {
+                    u16 absAddress = FetchWord(mem);
+                    cycles -= 2;
+                    Y = ReadByte(absAddress, mem);
+                    cycles--;
+                    LDYSetStatus();
+                }break;
+                case INS_LDY_ABSX:
+                {
+                    u16 absAddress = FetchWord(mem);
+                    cycles -= 2;
+                    if((absAddress & 0x00FF) + X > 0xFF){
+                        cycles--;
+                    }
+                    absAddress += X;
+                    Y = ReadByte(absAddress, mem);
+                    cycles--;
+                    LDYSetStatus();
                 }break;            
                 case INS_JSR:
                 {
