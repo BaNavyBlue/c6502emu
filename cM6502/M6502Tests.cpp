@@ -16,6 +16,10 @@ public:
 
     }
 
+    void TestORImmediate(
+        M6502::u8 opCode,
+        M6502::u8 M6502::CPU::*RegisterToTest);
+
     void TestLoadRegisterImmediate(
         M6502::u8 opCode,
         M6502::u8 M6502::CPU::*RegisterToTest);
@@ -83,6 +87,11 @@ TEST_F(M6502Test1, CPUUnderCycleLDAImmediateCanLoadAValueIntoTheARegister)
     EXPECT_TRUE(cpu.N);
 }
 
+TEST_F(M6502Test1, ORAImmediateCanLoadAValueIntoTheARegister)
+{
+    // UGLEE SYNTAX
+    TestORImmediate(M6502::CPU::INS_ORA_IM, &M6502::CPU::A);
+}
 
 TEST_F(M6502Test1, LDAImmediateCanLoadAValueIntoTheARegister)
 {
@@ -294,6 +303,25 @@ TEST_F(M6502Test1, CPUNoCycles)
     // then:
     EXPECT_EQ(cyclesUsed, 0);
 
+}
+
+void M6502Test1::TestORImmediate(
+    M6502::u8 opCode,
+    M6502::u8 M6502::CPU::*RegisterToTest)
+{
+    // given:
+    cpu.A = 0x11;
+    mem[0xFFFC] = opCode;
+    mem[0xFFFD] = 0x84;
+
+    //when:
+    int cyclesUsed = cpu.Execute(2, mem);
+
+    // then:
+    EXPECT_EQ( cpu.*RegisterToTest, 0x95);
+    EXPECT_EQ(cyclesUsed, 2);
+    EXPECT_FALSE(cpu.Z);
+    EXPECT_TRUE(cpu.N);
 }
 
 void M6502Test1::TestLoadRegisterImmediate(

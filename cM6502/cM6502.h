@@ -109,6 +109,16 @@ struct M6502::CPU{
     
     // opcodes
     static constexpr u8 
+                        INS_BRK = 0x00,
+                        // ORA
+                        INS_ORA_IM = 0x09,
+                        INS_ORA_ZP = 0x05,
+                        INS_ORA_ZPX = 0x15,
+                        INS_ORA_ABS = 0x0D,
+                        INS_ORA_ABSX = 0x1D,
+                        INS_ORA_ABSY = 0x19,
+                        INS_ORA_INDX = 0x01,
+                        INS_ORA_INDY = 0x11,
                         // LDA
                         INS_LDA_IM = 0xA9,
                         INS_LDA_ZP = 0xA5,
@@ -156,6 +166,102 @@ struct M6502::CPU{
             u8 ins = FetchByte(mem);
             cycles--;
             switch(ins){
+                case INS_BRK:
+                {
+                    u8 value = FetchByte(mem);
+                    cycles--;
+                    mem.WriteWord(PC, SP);
+                    cycles -= 2;
+                    SP++;
+                    PC = ReadWord(0xFFFE, mem);
+                    cycles -=2;
+                    B = 1;
+                    cycles--;
+
+                }break;
+                case INS_ORA_IM:
+                {
+                    u8 value = FetchByte(mem);
+                    cycles--;
+                    A |= value;
+                    LDASetStatus();
+                }break; 
+                case INS_ORA_ZP:
+                {
+                    u8 address = FetchByte(mem);
+                    cycles--;
+                    A |= ReadByte(address, mem);
+                    cycles--;
+                    LDASetStatus();
+                }break;
+                case INS_ORA_ZPX:
+                {
+                    u8 zPageAdd = FetchByte(mem);
+                    cycles--;
+                    zPageAdd += X;
+                    cycles--;
+                    A |= ReadByteZPage(zPageAdd, mem);
+                    cycles--;
+                    LDASetStatus();
+                }break;   
+                case INS_ORA_ABS:
+                {
+                    u16 absAddress = FetchWord(mem);
+                    cycles -= 2;
+                    A |= ReadByte(absAddress, mem);
+                    cycles--;
+                    LDASetStatus();
+                }break;  
+                case INS_ORA_ABSX:
+                {
+                    u16 absAddress = FetchWord(mem);
+                    cycles -= 2;
+                    if((absAddress & 0x00FF) + X > 0xFF){
+                        cycles--;
+                    }
+                    absAddress += X;
+                    A |= ReadByte(absAddress, mem);
+                    cycles--;
+                    LDASetStatus();
+                }break; 
+                case INS_ORA_ABSY:
+                {
+                    u16 absAddress = FetchWord(mem);
+                    cycles -= 2;
+                    if((absAddress & 0x00FF) + Y > 0xFF){
+                        cycles--;
+                    }
+                    absAddress += Y;
+                    A |= ReadByte(absAddress, mem);
+                    cycles--;
+                    LDASetStatus();
+                }break;
+                case INS_ORA_INDX:
+                {
+                    u16 zPageAddress = FetchByte(mem);
+                    cycles--;
+                    zPageAddress += X;
+                    cycles--;
+                    u16 targetAddress = ReadWord(zPageAddress, mem);
+                    cycles -= 2;
+                    A |= ReadByte(targetAddress, mem);
+                    cycles--;
+                    LDASetStatus();
+                }break; 
+                case INS_ORA_INDY:
+                {
+                    u16 zPageAddress = FetchByte(mem);
+                    cycles--;
+                    u16 targetAddress = ReadWord(zPageAddress, mem);
+                    cycles -= 2;
+                    if((targetAddress&0x00FF) + Y > 0xFF){
+                        cycles--;
+                    }
+                    targetAddress += Y;
+                    A |= ReadByte(targetAddress, mem);
+                    cycles--;
+                    LDASetStatus();
+                }break; 
                 case INS_LDA_IM:
                 {
                     u8 value = FetchByte(mem);
